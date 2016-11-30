@@ -140,14 +140,20 @@ function createLinkElement(options) {
 	return linkElement;
 }
 
+function bind(func, context, args) {
+	return function() {
+		return func.apply(context, args.concat(Array.prototype.slice.call(arguments)));
+	}
+}
+
 function addStyle(obj, options) {
 	var styleElement, update, remove;
 
 	if (options.singleton) {
 		var styleIndex = singletonCounter++;
 		styleElement = singletonElement || (singletonElement = createStyleElement(options));
-		update = applyToSingletonTag.bind(null, styleElement, styleIndex, false);
-		remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true);
+		update = bind(applyToSingletonTag, null, [styleElement, styleIndex, false]);
+		remove = bind(applyToSingletonTag, null, [styleElement, styleIndex, true]);
 	} else if(obj.sourceMap &&
 		typeof URL === "function" &&
 		typeof URL.createObjectURL === "function" &&
@@ -155,7 +161,7 @@ function addStyle(obj, options) {
 		typeof Blob === "function" &&
 		typeof btoa === "function") {
 		styleElement = createLinkElement(options);
-		update = updateLink.bind(null, styleElement);
+		update = bind(updateLink, null, [styleElement]);
 		remove = function() {
 			removeStyleElement(styleElement);
 			if(styleElement.href)
@@ -163,7 +169,7 @@ function addStyle(obj, options) {
 		};
 	} else {
 		styleElement = createStyleElement(options);
-		update = applyToTag.bind(null, styleElement);
+		update = bind(applyToTag, null, [styleElement]);
 		remove = function() {
 			removeStyleElement(styleElement);
 		};
@@ -187,7 +193,14 @@ var replaceText = (function () {
 
 	return function (index, replacement) {
 		textStore[index] = replacement;
-		return textStore.filter(Boolean).join('\n');
+
+		for (var i = 0, cleanStore = []; i < textStore.length; i++) {
+			if (textStore[i]) {
+				cleanStore.push(textStore[i]);
+			}
+		}
+
+		return cleanStore.join('\n');
 	};
 })();
 
